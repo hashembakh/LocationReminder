@@ -9,6 +9,7 @@ import com.udacity.project4.locationreminders.data.dto.ReminderDTO
 import com.udacity.project4.locationreminders.getOrAwaitValue
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.pauseDispatcher
+import kotlinx.coroutines.test.resumeDispatcher
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.`is`
 import org.junit.Assert
@@ -47,14 +48,17 @@ class RemindersListViewModelTest {
         mainCoroutineRule.pauseDispatcher()
         remindersListViewModel.loadReminders()
         Assert.assertThat(remindersListViewModel.showLoading.getOrAwaitValue(), CoreMatchers.`is`(true))
+        mainCoroutineRule.resumeDispatcher()
+        Assert.assertThat(remindersListViewModel.showLoading.getOrAwaitValue(), CoreMatchers.`is`(false))
+
     }
     @Test
     fun returnError() {
-        fakeDataSource = FakeDataSource(null)
+        fakeDataSource = FakeDataSource()
         remindersListViewModel =
             RemindersListViewModel(ApplicationProvider.getApplicationContext(), fakeDataSource)
         remindersListViewModel.loadReminders()
-        Assert.assertThat(remindersListViewModel.showSnackBar.getOrAwaitValue(), `is`("not found")
+        Assert.assertThat(remindersListViewModel.showSnackBar.getOrAwaitValue(), `is`("Reminder not found!")
         )
     }
 

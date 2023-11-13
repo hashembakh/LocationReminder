@@ -19,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.koin.core.context.stopKoin
 import kotlinx.coroutines.test.pauseDispatcher
+import kotlinx.coroutines.test.resumeDispatcher
 import org.junit.Before
 
 @ExperimentalCoroutinesApi

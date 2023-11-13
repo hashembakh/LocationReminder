@@ -3,7 +3,9 @@ package com.udacity.project4.locationreminders.savereminder
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.IntentSender
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MenuItem
 import android.view.View
@@ -13,10 +15,14 @@ import androidx.databinding.DataBindingUtil
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.Geofence
 import com.google.android.gms.location.GeofencingRequest
+import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationSettingsRequest
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.material.snackbar.Snackbar
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
@@ -68,9 +74,9 @@ class SaveReminderFragment : BaseFragment() {
                 //  1) add a geofencing request
                 //  2) save the reminder to the local db
                 val reminderGeoId = generateRandomString()
-                createGeoFence(latitude!!, longitude!!,reminderGeoId)
+                checkDeviceLocationSettingsAndStartGeofence(latitude!!, longitude!!,reminderGeoId)
                 val reminder = ReminderDataItem(title, description, location, latitude, longitude,reminderGeoId)
-                _viewModel.validateAndSaveReminder(reminder)
+                _viewModel.validateAndSaveReminder(reminder) //continue here
 
             }else{
                 Toast.makeText(requireContext(),"Please enter a title and description",Toast.LENGTH_SHORT).show()
@@ -86,6 +92,38 @@ class SaveReminderFragment : BaseFragment() {
         // Make sure to clear the view model after destroy, as it's a single view model.
         _viewModel.onClear()
     }
+    private fun checkDeviceLocationSettingsAndStartGeofence(lat:Double, long:Double,id:String,resolve:Boolean = true) {
+        val locationRequest = LocationRequest.create().apply {
+            priority = LocationRequest.PRIORITY_LOW_POWER
+        }
+        val builder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest)
+        val settingsClient = LocationServices.getSettingsClient(requireActivity())
+        val locationSettingsResponseTask =
+            settingsClient.checkLocationSettings(builder.build())
+        locationSettingsResponseTask.addOnFailureListener { exception ->
+            if (exception is ResolvableApiException && resolve){
+                try {
+                    exception.startResolutionForResult(requireActivity(),
+                        REQUEST_TURN_DEVICE_LOCATION_ON)
+                } catch (sendEx: IntentSender.SendIntentException) {
+                    Log.d("error", "Error getting location settings resolution: " + sendEx.message)
+                }
+            } else {
+                Snackbar.make(
+                    binding.fragmentSaveReminder,
+                    R.string.location_required_error, Snackbar.LENGTH_INDEFINITE
+                ).setAction(android.R.string.ok) {
+                    checkDeviceLocationSettingsAndStartGeofence(lat, long, id)
+                }.show()
+            }
+        }
+        locationSettingsResponseTask.addOnCompleteListener {
+            if ( it.isSuccessful ) {
+                createGeoFence(lat, long, id)
+            }
+        }
+    }
+
     @SuppressLint("MissingPermission")
     fun createGeoFence(lat:Double, long:Double,id:String){
         val geofencingClient = LocationServices.getGeofencingClient(requireActivity())
@@ -112,7 +150,8 @@ class SaveReminderFragment : BaseFragment() {
     }
     companion object{
         const val GEOFENCE_RADIUS_IN_METERS = 100f
-        internal const val ACTION_GEOFENCE_EVENT = "ACTION_GEOFENCE_EVENT"
+        const val ACTION_GEOFENCE_EVENT = "ACTION_GEOFENCE_EVENT"
+        const val REQUEST_TURN_DEVICE_LOCATION_ON = 23
     }
 
 }
