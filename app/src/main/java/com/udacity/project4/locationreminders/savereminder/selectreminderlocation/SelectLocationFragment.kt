@@ -161,21 +161,10 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun isPermissionGranted(): Boolean {
-        if(runningQOrLater)
         return ContextCompat.checkSelfPermission(
             requireContext(),
             android.Manifest.permission.ACCESS_FINE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-                && ContextCompat.checkSelfPermission(
-            requireContext(),
-            android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        else{
-            return ContextCompat.checkSelfPermission(
-                requireContext(),
-                android.Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        }
     }
 
     @SuppressLint("MissingPermission")
@@ -185,17 +174,11 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
            _viewModel.map.setMyLocationEnabled(true)
         } else {
             var permissionsArray = arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION)
-            val resultCode = when {
-                runningQOrLater -> {
-                    permissionsArray += android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
-                    REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE
-                }
-                else -> REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
-            }
+            permissionsArray += android.Manifest.permission.ACCESS_BACKGROUND_LOCATION
             ActivityCompat.requestPermissions(
                 requireActivity(),
                 permissionsArray,
-                resultCode
+                REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE
             )
         }
     }
@@ -208,9 +191,7 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
         if (
             grantResults.isEmpty() ||
             grantResults[LOCATION_PERMISSION_INDEX] == PackageManager.PERMISSION_DENIED ||
-            (requestCode == REQUEST_FOREGROUND_AND_BACKGROUND_PERMISSION_RESULT_CODE &&
-                    grantResults[BACKGROUND_LOCATION_PERMISSION_INDEX] ==
-                    PackageManager.PERMISSION_DENIED))
+            (requestCode == REQUEST_FOREGROUND_ONLY_PERMISSIONS_REQUEST_CODE ))
         {
             Snackbar.make(
                 binding.fragmentSelectLocation,
@@ -224,8 +205,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     })
                 }.show()
-        } else {
-
         }
     }
     private fun setPoiClick(map: GoogleMap){
@@ -257,6 +236,8 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback{
             )
         }
     }
+
+
     private fun setMapStyle(map:GoogleMap){
         try{
             val success = map.setMapStyle(

@@ -18,7 +18,7 @@ import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.*
-
+import org.koin.test.get
 
 
 @RunWith(AndroidJUnit4::class)
